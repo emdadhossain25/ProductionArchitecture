@@ -1,182 +1,169 @@
 import React, { useState } from 'react';
-import { SafeAreaView, ScrollView, StyleSheet, View, Alert } from 'react-native';
-import { Button, Input, Card, CustomText } from './src/components/base';
+import { SafeAreaView, ScrollView, StyleSheet, View } from 'react-native';
+import { Button, Card, CustomText } from './src/components/base';
+import {
+  Modal,
+  BottomSheet,
+  Loading,
+  ErrorMessage,
+  EmptyState,
+} from './src/components/feedback';
 import { COLORS, SPACING } from './src/constants/theme';
 
 export default function App() {
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [loading, setLoading] = useState(false);
-  const [errors, setErrors] = useState({});
-
-  const handleSubmit = () => {
-    // Simple validation
-    const newErrors = {};
-    
-    if (!email) {
-      newErrors.email = 'Email is required';
-    } else if (!email.includes('@')) {
-      newErrors.email = 'Invalid email format';
-    }
-    
-    if (!password) {
-      newErrors.password = 'Password is required';
-    } else if (password.length < 6) {
-      newErrors.password = 'Password must be at least 6 characters';
-    }
-
-    if (Object.keys(newErrors).length > 0) {
-      setErrors(newErrors);
-      return;
-    }
-
-    setErrors({});
-    setLoading(true);
-    
-    setTimeout(() => {
-      setLoading(false);
-      Alert.alert('Success!', 'Components working perfectly! 🎉');
-    }, 1500);
-  };
+  const [showModal, setShowModal] = useState(false);
+  const [showBottomSheet, setShowBottomSheet] = useState(false);
+  const [showLoading, setShowLoading] = useState(false);
+  const [showError, setShowError] = useState(false);
+  const [showEmpty, setShowEmpty] = useState(false);
 
   return (
     <SafeAreaView style={styles.container}>
       <ScrollView contentContainerStyle={styles.content}>
-        {/* Title */}
+        {/* Header */}
         <CustomText variant="h1" center style={styles.title}>
-          Component Library
+          Feedback Components
         </CustomText>
         <CustomText variant="body" center color={COLORS.text.secondary}>
-          Day 47: Base Components
+          Day 48: Complex Components
         </CustomText>
 
-        {/* Button Examples */}
+        {/* Modal Demo */}
         <Card variant="elevated" style={styles.section}>
           <CustomText variant="h3" style={styles.sectionTitle}>
-            Buttons
+            Modal Dialog
           </CustomText>
-          
-          <Button 
-            title="Primary Button"
-            variant="primary"
-            onPress={() => Alert.alert('Primary', 'Pressed!')}
-            style={styles.buttonSpacing}
+          <Button
+            title="Show Modal"
+            onPress={() => setShowModal(true)}
           />
-          
-          <Button 
-            title="Secondary Button"
-            variant="secondary"
-            onPress={() => Alert.alert('Secondary', 'Pressed!')}
-            style={styles.buttonSpacing}
+        </Card>
+
+        {/* BottomSheet Demo */}
+        <Card variant="elevated" style={styles.section}>
+          <CustomText variant="h3" style={styles.sectionTitle}>
+            Bottom Sheet
+          </CustomText>
+          <Button
+            title="Show Bottom Sheet"
+            onPress={() => setShowBottomSheet(true)}
           />
-          
-          <Button 
-            title="Danger Button"
-            variant="danger"
-            onPress={() => Alert.alert('Danger', 'Pressed!')}
-            style={styles.buttonSpacing}
+        </Card>
+
+        {/* Loading Demo */}
+        <Card variant="elevated" style={styles.section}>
+          <CustomText variant="h3" style={styles.sectionTitle}>
+            Loading States
+          </CustomText>
+          <Button
+            title="Toggle Loading"
+            onPress={() => setShowLoading(!showLoading)}
+            variant={showLoading ? 'danger' : 'primary'}
           />
-          
-          <Button 
-            title="Outline Button"
-            variant="outline"
-            onPress={() => Alert.alert('Outline', 'Pressed!')}
-            style={styles.buttonSpacing}
+          {showLoading && <Loading text="Fetching data..." />}
+        </Card>
+
+        {/* Error Demo */}
+        <Card variant="elevated" style={styles.section}>
+          <CustomText variant="h3" style={styles.sectionTitle}>
+            Error Message
+          </CustomText>
+          <Button
+            title="Toggle Error"
+            onPress={() => setShowError(!showError)}
+            variant={showError ? 'danger' : 'primary'}
           />
-          
-          <View style={styles.row}>
-            <Button 
-              title="Small"
-              size="sm"
-              onPress={() => {}}
-              style={styles.buttonSmall}
+          {showError && (
+            <ErrorMessage
+              title="Network Error"
+              message="Could not connect to server"
+              onRetry={() => setShowError(false)}
             />
-            <Button 
-              title="Large"
-              size="lg"
-              onPress={() => {}}
-              style={styles.buttonSmall}
+          )}
+        </Card>
+
+        {/* Empty State Demo */}
+        <Card variant="elevated" style={styles.section}>
+          <CustomText variant="h3" style={styles.sectionTitle}>
+            Empty State
+          </CustomText>
+          <Button
+            title="Toggle Empty State"
+            onPress={() => setShowEmpty(!showEmpty)}
+            variant={showEmpty ? 'danger' : 'primary'}
+          />
+        </Card>
+
+        {showEmpty && (
+          <View style={styles.emptyContainer}>
+            <EmptyState
+              emoji="📝"
+              title="No Tasks Yet"
+              message="Create your first task to get started!"
+              actionText="Add Task"
+              onAction={() => setShowEmpty(false)}
             />
           </View>
-        </Card>
-
-        {/* Form Example */}
-        <Card variant="elevated" style={styles.section}>
-          <CustomText variant="h3" style={styles.sectionTitle}>
-            Form Inputs
-          </CustomText>
-          
-          <Input
-            label="Email"
-            placeholder="Enter your email"
-            type="email"
-            value={email}
-            onChangeText={(text) => {
-              setEmail(text);
-              setErrors({...errors, email: ''});
-            }}
-            error={errors.email}
-            required
-          />
-          
-          <Input
-            label="Password"
-            placeholder="Enter your password"
-            type="password"
-            value={password}
-            onChangeText={(text) => {
-              setPassword(text);
-              setErrors({...errors, password: ''});
-            }}
-            error={errors.password}
-            required
-          />
-          
-          <Button
-            title="Submit Form"
-            onPress={handleSubmit}
-            isLoading={loading}
-          />
-        </Card>
-
-        {/* Card Variants */}
-        <CustomText variant="h3" style={styles.sectionTitle}>
-          Card Variants
-        </CustomText>
-
-        <Card variant="elevated" style={styles.cardExample}>
-          <CustomText variant="bodyBold">Elevated Card</CustomText>
-          <CustomText variant="caption" color={COLORS.text.secondary}>
-            With shadow elevation
-          </CustomText>
-        </Card>
-
-        <Card variant="outlined" style={styles.cardExample}>
-          <CustomText variant="bodyBold">Outlined Card</CustomText>
-          <CustomText variant="caption" color={COLORS.text.secondary}>
-            With border outline
-          </CustomText>
-        </Card>
-
-        <Card variant="flat" style={styles.cardExample}>
-          <CustomText variant="bodyBold">Flat Card</CustomText>
-          <CustomText variant="caption" color={COLORS.text.secondary}>
-            With background color
-          </CustomText>
-        </Card>
-
-        {/* Typography */}
-        <Card variant="elevated" style={styles.section}>
-          <CustomText variant="h1">Heading 1</CustomText>
-          <CustomText variant="h2">Heading 2</CustomText>
-          <CustomText variant="h3">Heading 3</CustomText>
-          <CustomText variant="body">Body text - Regular weight</CustomText>
-          <CustomText variant="bodyBold">Body text - Bold weight</CustomText>
-          <CustomText variant="caption" color={COLORS.text.secondary}>
-            Caption text - Small size
-          </CustomText>
-        </Card>
+        )}
       </ScrollView>
+
+      {/* Modal */}
+      <Modal
+        visible={showModal}
+        onClose={() => setShowModal(false)}
+        title="Confirm Action"
+        primaryAction="Confirm"
+        onPrimaryAction={() => {
+          setShowModal(false);
+          alert('Confirmed!');
+        }}
+        secondaryAction="Cancel"
+        onSecondaryAction={() => setShowModal(false)}
+      >
+        <CustomText variant="body">
+          Are you sure you want to perform this action?
+        </CustomText>
+        <CustomText
+          variant="caption"
+          color={COLORS.text.secondary}
+          style={{ marginTop: SPACING.sm }}
+        >
+          This action cannot be undone.
+        </CustomText>
+      </Modal>
+
+      {/* BottomSheet */}
+      <BottomSheet
+        visible={showBottomSheet}
+        onClose={() => setShowBottomSheet(false)}
+        title="Select Option"
+        height={0.4}
+      >
+        <Button
+          title="Option 1"
+          variant="outline"
+          onPress={() => setShowBottomSheet(false)}
+          style={styles.sheetButton}
+        />
+        <Button
+          title="Option 2"
+          variant="outline"
+          onPress={() => setShowBottomSheet(false)}
+          style={styles.sheetButton}
+        />
+        <Button
+          title="Option 3"
+          variant="outline"
+          onPress={() => setShowBottomSheet(false)}
+          style={styles.sheetButton}
+        />
+        <Button
+          title="Cancel"
+          variant="danger"
+          onPress={() => setShowBottomSheet(false)}
+          style={styles.sheetButton}
+        />
+      </BottomSheet>
     </SafeAreaView>
   );
 }
@@ -199,18 +186,11 @@ const styles = StyleSheet.create({
   sectionTitle: {
     marginBottom: SPACING.md,
   },
-  buttonSpacing: {
+  sheetButton: {
     marginBottom: SPACING.sm,
   },
-  row: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-  },
-  buttonSmall: {
-    flex: 1,
-    marginHorizontal: SPACING.xs,
-  },
-  cardExample: {
-    marginBottom: SPACING.sm,
+  emptyContainer: {
+    height: 300,
+    marginTop: SPACING.lg,
   },
 });
