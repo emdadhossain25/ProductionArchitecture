@@ -1,169 +1,223 @@
-import React, { useState } from 'react';
-import { SafeAreaView, ScrollView, StyleSheet, View } from 'react-native';
-import { Button, Card, CustomText } from './src/components/base';
-import {
-  Modal,
-  BottomSheet,
-  Loading,
-  ErrorMessage,
-  EmptyState,
-} from './src/components/feedback';
+import React, { useState, useEffect } from 'react';
+import { SafeAreaView, ScrollView, StyleSheet, View, Alert } from 'react-native';
+import { Button, Input, Card, CustomText } from './src/components/base';
+import { Loading } from './src/components/feedback';
+import { useAsync, useForm, useDebounce, useToggle, useKeyboard } from './src/hooks';
 import { COLORS, SPACING } from './src/constants/theme';
 
+// Mock API function
+const mockLogin = (email, password) => {
+  return new Promise((resolve, reject) => {
+    setTimeout(() => {
+      if (email === 'test@test.com' && password === 'password') {
+        resolve({ user: { email, name: 'Test User' } });
+      } else {
+        reject(new Error('Invalid credentials'));
+      }
+    }, 1500);
+  });
+};
+
+// Form validation
+const validateLoginForm = (values) => {
+  const errors = {};
+  
+  if (!values.email) {
+    errors.email = 'Email is required';
+  } else if (!/\S+@\S+\.\S+/.test(values.email)) {
+    errors.email = 'Email is invalid';
+  }
+  
+  if (!values.password) {
+    errors.password = 'Password is required';
+  } else if (values.password.length < 6) {
+    errors.password = 'Password must be at least 6 characters';
+  }
+  
+  return errors;
+};
+
 export default function App() {
-  const [showModal, setShowModal] = useState(false);
-  const [showBottomSheet, setShowBottomSheet] = useState(false);
-  const [showLoading, setShowLoading] = useState(false);
-  const [showError, setShowError] = useState(false);
-  const [showEmpty, setShowEmpty] = useState(false);
+  // useAsync example
+  const { execute: login, loading, error, data } = useAsync(mockLogin);
+
+  // useForm example
+  const { values, errors, handleChange, handleSubmit, reset } = useForm(
+    { email: '', password: '' },
+    validateLoginForm
+  );
+
+  // useToggle example
+  const [showPassword, togglePassword] = useToggle(false);
+  const [darkMode, toggleDarkMode] = useToggle(false);
+
+  // useDebounce example
+  const [searchTerm, setSearchTerm] = useState('');
+  const debouncedSearch = useDebounce(searchTerm, 500);
+
+  // useKeyboard example
+  const { isVisible: keyboardVisible, keyboardHeight } = useKeyboard();
+
+  // Watch debounced search
+  useEffect(() => {
+    if (debouncedSearch) {
+      console.log('Searching for:', debouncedSearch);
+    }
+  }, [debouncedSearch]);
+
+  const onSubmit = async (formValues) => {
+    const result = await login(formValues.email, formValues.password);
+    if (result) {
+      Alert.alert('Success!', `Welcome ${result.user.name}!`);
+      reset();
+    }
+  };
 
   return (
-    <SafeAreaView style={styles.container}>
-      <ScrollView contentContainerStyle={styles.content}>
+    <SafeAreaView style={[styles.container, darkMode && styles.darkContainer]}>
+      <ScrollView 
+        contentContainerStyle={[
+          styles.content,
+          { paddingBottom: keyboardHeight || SPACING.md }
+        ]}
+      >
         {/* Header */}
         <CustomText variant="h1" center style={styles.title}>
-          Feedback Components
+          Custom Hooks Demo
         </CustomText>
-        <CustomText variant="body" center color={COLORS.text.secondary}>
-          Day 48: Complex Components
+        <CustomText 
+          variant="body" 
+          center 
+          color={darkMode ? COLORS.text.inverse : COLORS.text.secondary}
+        >
+          Day 49: Reusable Logic
         </CustomText>
 
-        {/* Modal Demo */}
+        {/* useToggle Demo */}
         <Card variant="elevated" style={styles.section}>
           <CustomText variant="h3" style={styles.sectionTitle}>
-            Modal Dialog
+            useToggle Hook
           </CustomText>
           <Button
-            title="Show Modal"
-            onPress={() => setShowModal(true)}
+            title={darkMode ? 'Light Mode ☀️' : 'Dark Mode 🌙'}
+            onPress={toggleDarkMode}
+            variant={darkMode ? 'secondary' : 'primary'}
           />
         </Card>
 
-        {/* BottomSheet Demo */}
+        {/* useDebounce Demo */}
         <Card variant="elevated" style={styles.section}>
           <CustomText variant="h3" style={styles.sectionTitle}>
-            Bottom Sheet
+            useDebounce Hook
           </CustomText>
-          <Button
-            title="Show Bottom Sheet"
-            onPress={() => setShowBottomSheet(true)}
+          <Input
+            label="Search (500ms delay)"
+            placeholder="Type to search..."
+            value={searchTerm}
+            onChangeText={setSearchTerm}
           />
+          <CustomText variant="caption" color={COLORS.text.secondary}>
+            Debounced value: {debouncedSearch || '(empty)'}
+          </CustomText>
+          <CustomText variant="caption" color={COLORS.text.secondary} style={{ marginTop: SPACING.xs }}>
+            💡 API calls only happen after you stop typing for 500ms
+          </CustomText>
         </Card>
 
-        {/* Loading Demo */}
+        {/* useForm + useAsync Demo */}
         <Card variant="elevated" style={styles.section}>
           <CustomText variant="h3" style={styles.sectionTitle}>
-            Loading States
+            useForm + useAsync
           </CustomText>
-          <Button
-            title="Toggle Loading"
-            onPress={() => setShowLoading(!showLoading)}
-            variant={showLoading ? 'danger' : 'primary'}
+          
+          <Input
+            label="Email"
+            placeholder="test@test.com"
+            type="email"
+            value={values.email}
+            onChangeText={(text) => handleChange('email', text)}
+            error={errors.email}
+            required
           />
-          {showLoading && <Loading text="Fetching data..." />}
+
+          <Input
+            label="Password"
+            placeholder="password"
+            type={showPassword ? 'text' : 'password'}
+            value={values.password}
+            onChangeText={(text) => handleChange('password', text)}
+            error={errors.password}
+            required
+          />
+
+          <Button
+            title="Toggle Password Visibility"
+            variant="outline"
+            size="sm"
+            onPress={togglePassword}
+            style={styles.toggleButton}
+          />
+
+          {error && (
+            <View style={styles.errorBox}>
+              <CustomText variant="body" color={COLORS.danger}>
+                ❌ {error}
+              </CustomText>
+            </View>
+          )}
+
+          {data && (
+            <View style={styles.successBox}>
+              <CustomText variant="body" color={COLORS.success}>
+                ✅ Login successful!
+              </CustomText>
+            </View>
+          )}
+
+          <Button
+            title="Login"
+            onPress={handleSubmit(onSubmit)}
+            isLoading={loading}
+            style={styles.submitButton}
+          />
+
+          <CustomText variant="caption" color={COLORS.text.secondary} center>
+            💡 Try: test@test.com / password
+          </CustomText>
         </Card>
 
-        {/* Error Demo */}
+        {/* useKeyboard Demo */}
         <Card variant="elevated" style={styles.section}>
           <CustomText variant="h3" style={styles.sectionTitle}>
-            Error Message
+            useKeyboard Hook
           </CustomText>
-          <Button
-            title="Toggle Error"
-            onPress={() => setShowError(!showError)}
-            variant={showError ? 'danger' : 'primary'}
-          />
-          {showError && (
-            <ErrorMessage
-              title="Network Error"
-              message="Could not connect to server"
-              onRetry={() => setShowError(false)}
-            />
+          <CustomText variant="body">
+            Keyboard Status: {keyboardVisible ? '⌨️ Visible' : '✅ Hidden'}
+          </CustomText>
+          {keyboardVisible && (
+            <CustomText variant="caption" color={COLORS.text.secondary}>
+              Height: {Math.round(keyboardHeight)}px
+            </CustomText>
           )}
         </Card>
 
-        {/* Empty State Demo */}
-        <Card variant="elevated" style={styles.section}>
+        {/* Loading Demo */}
+        {loading && <Loading text="Logging in..." />}
+
+        {/* Summary */}
+        <Card variant="flat" style={styles.section}>
           <CustomText variant="h3" style={styles.sectionTitle}>
-            Empty State
+            ✨ Hooks Summary
           </CustomText>
-          <Button
-            title="Toggle Empty State"
-            onPress={() => setShowEmpty(!showEmpty)}
-            variant={showEmpty ? 'danger' : 'primary'}
-          />
+          <CustomText variant="body">
+            ✅ useAsync - API calls with loading/error{'\n'}
+            ✅ useForm - Form validation & handling{'\n'}
+            ✅ useDebounce - Search optimization{'\n'}
+            ✅ useToggle - Boolean state helper{'\n'}
+            ✅ useKeyboard - Keyboard state tracking
+          </CustomText>
         </Card>
-
-        {showEmpty && (
-          <View style={styles.emptyContainer}>
-            <EmptyState
-              emoji="📝"
-              title="No Tasks Yet"
-              message="Create your first task to get started!"
-              actionText="Add Task"
-              onAction={() => setShowEmpty(false)}
-            />
-          </View>
-        )}
       </ScrollView>
-
-      {/* Modal */}
-      <Modal
-        visible={showModal}
-        onClose={() => setShowModal(false)}
-        title="Confirm Action"
-        primaryAction="Confirm"
-        onPrimaryAction={() => {
-          setShowModal(false);
-          alert('Confirmed!');
-        }}
-        secondaryAction="Cancel"
-        onSecondaryAction={() => setShowModal(false)}
-      >
-        <CustomText variant="body">
-          Are you sure you want to perform this action?
-        </CustomText>
-        <CustomText
-          variant="caption"
-          color={COLORS.text.secondary}
-          style={{ marginTop: SPACING.sm }}
-        >
-          This action cannot be undone.
-        </CustomText>
-      </Modal>
-
-      {/* BottomSheet */}
-      <BottomSheet
-        visible={showBottomSheet}
-        onClose={() => setShowBottomSheet(false)}
-        title="Select Option"
-        height={0.4}
-      >
-        <Button
-          title="Option 1"
-          variant="outline"
-          onPress={() => setShowBottomSheet(false)}
-          style={styles.sheetButton}
-        />
-        <Button
-          title="Option 2"
-          variant="outline"
-          onPress={() => setShowBottomSheet(false)}
-          style={styles.sheetButton}
-        />
-        <Button
-          title="Option 3"
-          variant="outline"
-          onPress={() => setShowBottomSheet(false)}
-          style={styles.sheetButton}
-        />
-        <Button
-          title="Cancel"
-          variant="danger"
-          onPress={() => setShowBottomSheet(false)}
-          style={styles.sheetButton}
-        />
-      </BottomSheet>
     </SafeAreaView>
   );
 }
@@ -172,6 +226,9 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: COLORS.background.secondary,
+  },
+  darkContainer: {
+    backgroundColor: '#1a1a1a',
   },
   content: {
     padding: SPACING.md,
@@ -186,11 +243,23 @@ const styles = StyleSheet.create({
   sectionTitle: {
     marginBottom: SPACING.md,
   },
-  sheetButton: {
+  toggleButton: {
+    marginBottom: SPACING.md,
+  },
+  submitButton: {
+    marginTop: SPACING.md,
     marginBottom: SPACING.sm,
   },
-  emptyContainer: {
-    height: 300,
-    marginTop: SPACING.lg,
+  errorBox: {
+    backgroundColor: '#FFE5E5',
+    padding: SPACING.md,
+    borderRadius: 8,
+    marginBottom: SPACING.md,
+  },
+  successBox: {
+    backgroundColor: '#E5FFE5',
+    padding: SPACING.md,
+    borderRadius: 8,
+    marginBottom: SPACING.md,
   },
 });
