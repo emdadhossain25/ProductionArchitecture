@@ -1,220 +1,321 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { SafeAreaView, ScrollView, StyleSheet, View, Alert } from 'react-native';
 import { Button, Input, Card, CustomText } from './src/components/base';
 import { Loading } from './src/components/feedback';
-import { useAsync, useForm, useDebounce, useToggle, useKeyboard } from './src/hooks';
+import { useAsync, useForm } from './src/hooks';
+import { api } from './src/services/api';
 import { COLORS, SPACING } from './src/constants/theme';
 
-// Mock API function
-const mockLogin = (email, password) => {
-  return new Promise((resolve, reject) => {
-    setTimeout(() => {
-      if (email === 'test@test.com' && password === 'password') {
-        resolve({ user: { email, name: 'Test User' } });
-      } else {
-        reject(new Error('Invalid credentials'));
-      }
-    }, 1500);
-  });
+// Mock API for testing (since we don't have real backend)
+const mockAPI = {
+  auth: {
+    login: async (email, password) => {
+      return new Promise((resolve, reject) => {
+        setTimeout(() => {
+          if (email === 'test@test.com' && password === 'password123') {
+            resolve({
+              token: 'mock_token_12345',
+              refreshToken: 'mock_refresh_token_12345',
+              user: {
+                id: '1',
+                email,
+                name: 'Test User',
+              },
+            });
+          } else {
+            reject({ message: 'Invalid credentials' });
+          }
+        }, 1500);
+      });
+    },
+    register: async (userData) => {
+      return new Promise((resolve) => {
+        setTimeout(() => {
+          resolve({
+            token: 'mock_token_12345',
+            refreshToken: 'mock_refresh_token_12345',
+            user: {
+              id: '1',
+              email: userData.email,
+              name: userData.name,
+            },
+          });
+        }, 1500);
+      });
+    },
+  },
+  user: {
+    getProfile: async (userId) => {
+      return new Promise((resolve) => {
+        setTimeout(() => {
+          resolve({
+            id: userId,
+            name: 'Test User',
+            email: 'test@test.com',
+            bio: 'React Native developer',
+            joinedDate: '2024-01-01',
+          });
+        }, 1000);
+      });
+    },
+  },
 };
 
-// Form validation
-const validateLoginForm = (values) => {
+// Validation
+const validateLogin = (values) => {
   const errors = {};
+  if (!values.email) errors.email = 'Email is required';
+  else if (!/\S+@\S+\.\S+/.test(values.email)) errors.email = 'Email is invalid';
   
-  if (!values.email) {
-    errors.email = 'Email is required';
-  } else if (!/\S+@\S+\.\S+/.test(values.email)) {
-    errors.email = 'Email is invalid';
-  }
-  
-  if (!values.password) {
-    errors.password = 'Password is required';
-  } else if (values.password.length < 6) {
-    errors.password = 'Password must be at least 6 characters';
-  }
+  if (!values.password) errors.password = 'Password is required';
+  else if (values.password.length < 6) errors.password = 'Min 6 characters';
   
   return errors;
 };
 
+const validateRegister = (values) => {
+  const errors = validateLogin(values);
+  if (!values.name) errors.name = 'Name is required';
+  return errors;
+};
+
 export default function App() {
-  // useAsync example
-  const { execute: login, loading, error, data } = useAsync(mockLogin);
+  const [mode, setMode] = useState('login'); // 'login' | 'register' | 'profile'
+  const [userId, setUserId] = useState(null);
 
-  // useForm example
-  const { values, errors, handleChange, handleSubmit, reset } = useForm(
-    { email: '', password: '' },
-    validateLoginForm
-  );
+  // Login
+  const { execute: login, loading: loginLoading, error: loginError } = useAsync(mockAPI.auth.login);
+  const loginForm = useForm({ email: '', password: '' }, validateLogin);
 
-  // useToggle example
-  const [showPassword, togglePassword] = useToggle(false);
-  const [darkMode, toggleDarkMode] = useToggle(false);
+  // Register
+  const { execute: register, loading: registerLoading, error: registerError } = useAsync(mockAPI.auth.register);
+  const registerForm = useForm({ name: '', email: '', password: '' }, validateRegister);
 
-  // useDebounce example
-  const [searchTerm, setSearchTerm] = useState('');
-  const debouncedSearch = useDebounce(searchTerm, 500);
+  // Profile
+  const { execute: getProfile, loading: profileLoading, error: profileError, data: profileData } = useAsync(mockAPI.user.getProfile);
 
-  // useKeyboard example
-  const { isVisible: keyboardVisible, keyboardHeight } = useKeyboard();
-
-  // Watch debounced search
-  useEffect(() => {
-    if (debouncedSearch) {
-      console.log('Searching for:', debouncedSearch);
-    }
-  }, [debouncedSearch]);
-
-  const onSubmit = async (formValues) => {
-    const result = await login(formValues.email, formValues.password);
+  const handleLogin = async () => {
+    const result = await login(loginForm.values.email, loginForm.values.password);
     if (result) {
       Alert.alert('Success!', `Welcome ${result.user.name}!`);
-      reset();
+      setUserId(result.user.id);
+      setMode('profile');
+    }
+  };
+
+  const handleRegister = async () => {
+    const result = await register(registerForm.values);
+    if (result) {
+      Alert.alert('Success!', `Account created for ${result.user.name}!`);
+      setUserId(result.user.id);
+      setMode('profile');
+    }
+  };
+
+  const handleViewProfile = async () => {
+    if (userId) {
+      await getProfile(userId);
     }
   };
 
   return (
-    <SafeAreaView style={[styles.container, darkMode && styles.darkContainer]}>
-      <ScrollView 
-        contentContainerStyle={[
-          styles.content,
-          { paddingBottom: keyboardHeight || SPACING.md }
-        ]}
-      >
+    <SafeAreaView style={styles.container}>
+      <ScrollView contentContainerStyle={styles.content}>
         {/* Header */}
         <CustomText variant="h1" center style={styles.title}>
-          Custom Hooks Demo
+          API Integration
         </CustomText>
-        <CustomText 
-          variant="body" 
-          center 
-          color={darkMode ? COLORS.text.inverse : COLORS.text.secondary}
-        >
-          Day 49: Reusable Logic
+        <CustomText variant="body" center color={COLORS.text.secondary}>
+          Day 50: Complete API Layer
         </CustomText>
 
-        {/* useToggle Demo */}
+        {/* Mode Switcher */}
         <Card variant="elevated" style={styles.section}>
-          <CustomText variant="h3" style={styles.sectionTitle}>
-            useToggle Hook
-          </CustomText>
-          <Button
-            title={darkMode ? 'Light Mode ☀️' : 'Dark Mode 🌙'}
-            onPress={toggleDarkMode}
-            variant={darkMode ? 'secondary' : 'primary'}
-          />
+          <View style={styles.row}>
+            <Button
+              title="Login"
+              variant={mode === 'login' ? 'primary' : 'outline'}
+              size="sm"
+              onPress={() => setMode('login')}
+              style={styles.modeButton}
+            />
+            <Button
+              title="Register"
+              variant={mode === 'register' ? 'primary' : 'outline'}
+              size="sm"
+              onPress={() => setMode('register')}
+              style={styles.modeButton}
+            />
+            <Button
+              title="Profile"
+              variant={mode === 'profile' ? 'primary' : 'outline'}
+              size="sm"
+              onPress={() => setMode('profile')}
+              style={styles.modeButton}
+              disabled={!userId}
+            />
+          </View>
         </Card>
 
-        {/* useDebounce Demo */}
-        <Card variant="elevated" style={styles.section}>
-          <CustomText variant="h3" style={styles.sectionTitle}>
-            useDebounce Hook
-          </CustomText>
-          <Input
-            label="Search (500ms delay)"
-            placeholder="Type to search..."
-            value={searchTerm}
-            onChangeText={setSearchTerm}
-          />
-          <CustomText variant="caption" color={COLORS.text.secondary}>
-            Debounced value: {debouncedSearch || '(empty)'}
-          </CustomText>
-          <CustomText variant="caption" color={COLORS.text.secondary} style={{ marginTop: SPACING.xs }}>
-            💡 API calls only happen after you stop typing for 500ms
-          </CustomText>
-        </Card>
-
-        {/* useForm + useAsync Demo */}
-        <Card variant="elevated" style={styles.section}>
-          <CustomText variant="h3" style={styles.sectionTitle}>
-            useForm + useAsync
-          </CustomText>
-          
-          <Input
-            label="Email"
-            placeholder="test@test.com"
-            type="email"
-            value={values.email}
-            onChangeText={(text) => handleChange('email', text)}
-            error={errors.email}
-            required
-          />
-
-          <Input
-            label="Password"
-            placeholder="password"
-            type={showPassword ? 'text' : 'password'}
-            value={values.password}
-            onChangeText={(text) => handleChange('password', text)}
-            error={errors.password}
-            required
-          />
-
-          <Button
-            title="Toggle Password Visibility"
-            variant="outline"
-            size="sm"
-            onPress={togglePassword}
-            style={styles.toggleButton}
-          />
-
-          {error && (
-            <View style={styles.errorBox}>
-              <CustomText variant="body" color={COLORS.danger}>
-                ❌ {error}
-              </CustomText>
-            </View>
-          )}
-
-          {data && (
-            <View style={styles.successBox}>
-              <CustomText variant="body" color={COLORS.success}>
-                ✅ Login successful!
-              </CustomText>
-            </View>
-          )}
-
-          <Button
-            title="Login"
-            onPress={handleSubmit(onSubmit)}
-            isLoading={loading}
-            style={styles.submitButton}
-          />
-
-          <CustomText variant="caption" color={COLORS.text.secondary} center>
-            💡 Try: test@test.com / password
-          </CustomText>
-        </Card>
-
-        {/* useKeyboard Demo */}
-        <Card variant="elevated" style={styles.section}>
-          <CustomText variant="h3" style={styles.sectionTitle}>
-            useKeyboard Hook
-          </CustomText>
-          <CustomText variant="body">
-            Keyboard Status: {keyboardVisible ? '⌨️ Visible' : '✅ Hidden'}
-          </CustomText>
-          {keyboardVisible && (
-            <CustomText variant="caption" color={COLORS.text.secondary}>
-              Height: {Math.round(keyboardHeight)}px
+        {/* Login Form */}
+        {mode === 'login' && (
+          <Card variant="elevated" style={styles.section}>
+            <CustomText variant="h3" style={styles.sectionTitle}>
+              Login
             </CustomText>
-          )}
-        </Card>
 
-        {/* Loading Demo */}
-        {loading && <Loading text="Logging in..." />}
+            <Input
+              label="Email"
+              placeholder="test@test.com"
+              type="email"
+              value={loginForm.values.email}
+              onChangeText={(text) => loginForm.handleChange('email', text)}
+              error={loginForm.errors.email}
+            />
 
-        {/* Summary */}
+            <Input
+              label="Password"
+              placeholder="password123"
+              type="password"
+              value={loginForm.values.password}
+              onChangeText={(text) => loginForm.handleChange('password', text)}
+              error={loginForm.errors.password}
+            />
+
+            {loginError && (
+              <View style={styles.errorBox}>
+                <CustomText variant="body" color={COLORS.danger}>
+                  ❌ {loginError}
+                </CustomText>
+              </View>
+            )}
+
+            <Button
+              title="Login"
+              onPress={loginForm.handleSubmit(handleLogin)}
+              isLoading={loginLoading}
+            />
+
+            <CustomText variant="caption" color={COLORS.text.secondary} center style={styles.hint}>
+              💡 Try: test@test.com / password123
+            </CustomText>
+          </Card>
+        )}
+
+        {/* Register Form */}
+        {mode === 'register' && (
+          <Card variant="elevated" style={styles.section}>
+            <CustomText variant="h3" style={styles.sectionTitle}>
+              Register
+            </CustomText>
+
+            <Input
+              label="Name"
+              placeholder="Your name"
+              value={registerForm.values.name}
+              onChangeText={(text) => registerForm.handleChange('name', text)}
+              error={registerForm.errors.name}
+            />
+
+            <Input
+              label="Email"
+              placeholder="your@email.com"
+              type="email"
+              value={registerForm.values.email}
+              onChangeText={(text) => registerForm.handleChange('email', text)}
+              error={registerForm.errors.email}
+            />
+
+            <Input
+              label="Password"
+              placeholder="Min 6 characters"
+              type="password"
+              value={registerForm.values.password}
+              onChangeText={(text) => registerForm.handleChange('password', text)}
+              error={registerForm.errors.password}
+            />
+
+            {registerError && (
+              <View style={styles.errorBox}>
+                <CustomText variant="body" color={COLORS.danger}>
+                  ❌ {registerError}
+                </CustomText>
+              </View>
+            )}
+
+            <Button
+              title="Create Account"
+              onPress={registerForm.handleSubmit(handleRegister)}
+              isLoading={registerLoading}
+            />
+          </Card>
+        )}
+
+        {/* Profile View */}
+        {mode === 'profile' && (
+          <Card variant="elevated" style={styles.section}>
+            <CustomText variant="h3" style={styles.sectionTitle}>
+              Profile
+            </CustomText>
+
+            {!profileData && (
+              <Button
+                title="Load Profile"
+                onPress={handleViewProfile}
+                isLoading={profileLoading}
+              />
+            )}
+
+            {profileLoading && <Loading text="Loading profile..." />}
+
+            {profileError && (
+              <View style={styles.errorBox}>
+                <CustomText variant="body" color={COLORS.danger}>
+                  ❌ {profileError}
+                </CustomText>
+              </View>
+            )}
+
+            {profileData && (
+              <View style={styles.profileData}>
+                <CustomText variant="bodyBold">Name:</CustomText>
+                <CustomText variant="body" style={styles.profileValue}>
+                  {profileData.name}
+                </CustomText>
+
+                <CustomText variant="bodyBold">Email:</CustomText>
+                <CustomText variant="body" style={styles.profileValue}>
+                  {profileData.email}
+                </CustomText>
+
+                <CustomText variant="bodyBold">Bio:</CustomText>
+                <CustomText variant="body" style={styles.profileValue}>
+                  {profileData.bio}
+                </CustomText>
+
+                <CustomText variant="bodyBold">Joined:</CustomText>
+                <CustomText variant="body" style={styles.profileValue}>
+                  {profileData.joinedDate}
+                </CustomText>
+              </View>
+            )}
+          </Card>
+        )}
+
+        {/* API Features */}
         <Card variant="flat" style={styles.section}>
           <CustomText variant="h3" style={styles.sectionTitle}>
-            ✨ Hooks Summary
+            ✨ API Layer Features
           </CustomText>
           <CustomText variant="body">
-            ✅ useAsync - API calls with loading/error{'\n'}
-            ✅ useForm - Form validation & handling{'\n'}
-            ✅ useDebounce - Search optimization{'\n'}
-            ✅ useToggle - Boolean state helper{'\n'}
-            ✅ useKeyboard - Keyboard state tracking
+            ✅ Axios client with interceptors{'\n'}
+            ✅ Automatic token injection{'\n'}
+            ✅ Token refresh on 401{'\n'}
+            ✅ Error handling & parsing{'\n'}
+            ✅ Request/response logging{'\n'}
+            ✅ Retry logic for network errors{'\n'}
+            ✅ Organized service files{'\n'}
+            ✅ TypeScript-ready structure
           </CustomText>
         </Card>
       </ScrollView>
@@ -226,9 +327,6 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: COLORS.background.secondary,
-  },
-  darkContainer: {
-    backgroundColor: '#1a1a1a',
   },
   content: {
     padding: SPACING.md,
@@ -243,12 +341,12 @@ const styles = StyleSheet.create({
   sectionTitle: {
     marginBottom: SPACING.md,
   },
-  toggleButton: {
-    marginBottom: SPACING.md,
+  row: {
+    flexDirection: 'row',
+    gap: SPACING.sm,
   },
-  submitButton: {
-    marginTop: SPACING.md,
-    marginBottom: SPACING.sm,
+  modeButton: {
+    flex: 1,
   },
   errorBox: {
     backgroundColor: '#FFE5E5',
@@ -256,10 +354,14 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     marginBottom: SPACING.md,
   },
-  successBox: {
-    backgroundColor: '#E5FFE5',
-    padding: SPACING.md,
-    borderRadius: 8,
+  hint: {
+    marginTop: SPACING.sm,
+  },
+  profileData: {
+    gap: SPACING.xs,
+  },
+  profileValue: {
     marginBottom: SPACING.md,
+    color: COLORS.text.secondary,
   },
 });

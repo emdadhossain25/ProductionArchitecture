@@ -7,7 +7,7 @@ const ENV = 'development'; // Change to 'production' when deploying
 
 const config = {
   development: {
-    API_BASE_URL: 'http://localhost:3000',
+    API_BASE_URL: 'http://localhost:3000/api',
     DEBUG: true,
     ENABLE_LOGGING: true,
     TIMEOUT_MS: 10000,
@@ -30,16 +30,22 @@ export const API_ENDPOINTS = {
     REGISTER: '/auth/register',
     LOGOUT: '/auth/logout',
     REFRESH: '/auth/refresh',
+    ME: '/auth/me',
+    FORGOT_PASSWORD: '/auth/forgot-password',
+    RESET_PASSWORD: '/auth/reset-password',
   },
   USER: {
-    PROFILE: '/user/profile',
-    UPDATE: '/user/update',
+    PROFILE: '/users/:id',
+    UPDATE: '/users/:id',
+    DELETE: '/users/:id',
+    PROFILE_PICTURE: '/users/:id/profile-picture',
   },
 };
 
 // Storage keys
 export const STORAGE_KEYS = {
   AUTH_TOKEN: '@auth_token',
+  REFRESH_TOKEN: '@refresh_token',
   USER_DATA: '@user_data',
   THEME: '@theme',
   LANGUAGE: '@language',
