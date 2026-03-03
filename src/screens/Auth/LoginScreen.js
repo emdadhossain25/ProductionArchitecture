@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { SafeAreaView, ScrollView, StyleSheet, View, Alert } from 'react-native';
+import { SafeAreaView, ScrollView, StyleSheet, View, Alert, TouchableOpacity } from 'react-native';
 import { Button, Input, Card, CustomText } from '../../components/base';
 import { useAuth, useTheme } from '../../contexts';
 import { useForm } from '../../hooks';
@@ -16,10 +16,27 @@ const mockLogin = async (email, password) => {
           user: { id: '1', email, name: 'Test User' },
         });
       } else {
-        reject({ message: 'Invalid credentials' });
+        reject({ message: 'Invalid email or password' });
       }
     }, 1000);
   });
+};
+
+// Validation
+const validateLoginForm = (values) => {
+  const errors = {};
+  
+  if (!values.email) {
+    errors.email = 'Email is required';
+  } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(values.email)) {
+    errors.email = 'Invalid email format';
+  }
+  
+  if (!values.password) {
+    errors.password = 'Password is required';
+  }
+  
+  return errors;
 };
 
 export default function LoginScreen({ navigation }) {
@@ -30,12 +47,7 @@ export default function LoginScreen({ navigation }) {
 
   const { values, errors, handleChange, handleSubmit } = useForm(
     { email: '', password: '' },
-    (vals) => {
-      const errs = {};
-      if (!vals.email) errs.email = 'Email required';
-      if (!vals.password) errs.password = 'Password required';
-      return errs;
-    }
+    validateLoginForm
   );
 
   const onSubmit = async (formValues) => {
@@ -43,12 +55,10 @@ export default function LoginScreen({ navigation }) {
     setError(null);
 
     try {
-      const response = await mockLogin(formValues.email, formValues.password);
+      await mockLogin(formValues.email, formValues.password);
       const result = await login(formValues.email, formValues.password);
       
-      if (result.success) {
-        // Navigation happens automatically via RootNavigator
-      } else {
+      if (!result.success) {
         setError(result.error);
       }
     } catch (err) {
@@ -61,10 +71,15 @@ export default function LoginScreen({ navigation }) {
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: colors.background.secondary }]}>
       <ScrollView contentContainerStyle={styles.content}>
+        {/* Header */}
         <CustomText variant="h1" center style={styles.title}>
           Welcome Back! 👋
         </CustomText>
+        <CustomText variant="body" center color={colors.text.secondary}>
+          Sign in to continue
+        </CustomText>
 
+        {/* Form */}
         <Card variant="elevated" style={styles.card}>
           <Input
             label="Email"
@@ -73,6 +88,7 @@ export default function LoginScreen({ navigation }) {
             value={values.email}
             onChangeText={(text) => handleChange('email', text)}
             error={errors.email}
+            required
           />
 
           <Input
@@ -82,30 +98,51 @@ export default function LoginScreen({ navigation }) {
             value={values.password}
             onChangeText={(text) => handleChange('password', text)}
             error={errors.password}
+            required
           />
 
+          {/* Forgot Password Link */}
+          <TouchableOpacity
+            onPress={() => navigation.navigate('ForgotPassword')}
+            style={styles.forgotPassword}
+          >
+            <CustomText variant="caption" color={colors.primary}>
+              Forgot Password?
+            </CustomText>
+          </TouchableOpacity>
+
+          {/* Error Message */}
           {error && (
             <View style={[styles.errorBox, { backgroundColor: colors.danger + '20' }]}>
-              <CustomText color={colors.danger}>{error}</CustomText>
+              <CustomText color={colors.danger}>❌ {error}</CustomText>
             </View>
           )}
 
+          {/* Login Button */}
           <Button
             title="Login"
             onPress={handleSubmit(onSubmit)}
             isLoading={loading}
           />
 
+          {/* Demo Credentials */}
           <CustomText variant="caption" color={colors.text.secondary} center style={styles.hint}>
-            💡 test@test.com / password
+            💡 Demo: test@test.com / password
           </CustomText>
 
-          <Button
-            title="Create Account"
-            variant="outline"
-            onPress={() => navigation.navigate('Register')}
-            style={styles.registerButton}
-          />
+          {/* Register Link */}
+          <View style={styles.footer}>
+            <CustomText variant="body" color={colors.text.secondary}>
+              Don't have an account?{' '}
+            </CustomText>
+            <Button
+              title="Sign Up"
+              variant="outline"
+              size="sm"
+              onPress={() => navigation.navigate('Register')}
+              style={styles.registerButton}
+            />
+          </View>
         </Card>
       </ScrollView>
     </SafeAreaView>
@@ -113,11 +150,40 @@ export default function LoginScreen({ navigation }) {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1 },
-  content: { padding: SPACING.md, paddingTop: 80 },
-  title: { marginBottom: SPACING.xl },
-  card: { marginTop: SPACING.lg },
-  errorBox: { padding: SPACING.md, borderRadius: 8, marginBottom: SPACING.md },
-  hint: { marginTop: SPACING.sm },
-  registerButton: { marginTop: SPACING.md },
+  container: {
+    flex: 1,
+  },
+  content: {
+    padding: SPACING.md,
+    paddingTop: 80,
+  },
+  title: {
+    marginBottom: SPACING.xs,
+  },
+  card: {
+    marginTop: SPACING.xl,
+  },
+  forgotPassword: {
+    alignSelf: 'flex-end',
+    marginTop: SPACING.xs,
+    marginBottom: SPACING.md,
+  },
+  errorBox: {
+    padding: SPACING.md,
+    borderRadius: 8,
+    marginBottom: SPACING.md,
+  },
+  hint: {
+    marginTop: SPACING.sm,
+  },
+  footer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: SPACING.lg,
+    flexWrap: 'wrap',
+  },
+  registerButton: {
+    marginLeft: SPACING.sm,
+  },
 });
