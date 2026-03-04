@@ -4,6 +4,7 @@ import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import HomeScreen from '../screens/Home/HomeScreen';
 import ProfileScreen from '../screens/Profile/ProfileScreen';
+import CompleteProfileScreen from '../screens/Profile/CompleteProfileScreen';
 import SettingsScreen from '../screens/Settings/SettingsScreen';
 import { useTheme } from '../contexts';
 
@@ -22,6 +23,7 @@ function ProfileStack() {
   return (
     <Stack.Navigator screenOptions={{ headerShown: false }}>
       <Stack.Screen name="ProfileMain" component={ProfileScreen} />
+      <Stack.Screen name="CompleteProfile" component={CompleteProfileScreen} />
     </Stack.Navigator>
   );
 }

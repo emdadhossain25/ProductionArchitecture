@@ -58,3 +58,15 @@ const styles = StyleSheet.create({
   card: { marginTop: SPACING.md },
   info: { marginTop: SPACING.sm, lineHeight: 24 },
 });
+
+// Add this import at the top if not there:
+// import { Button } from '../../components/base';
+
+// Add this button after the user info card, before the closing ScrollView tag:
+/*
+<Button
+  title="Complete Profile"
+  onPress={() => navigation.navigate('CompleteProfile')}
+  style={{ marginTop: SPACING.md }}
+/>
+*/
