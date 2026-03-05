@@ -6,6 +6,7 @@ import HomeScreen from '../screens/Home/HomeScreen';
 import ProfileScreen from '../screens/Profile/ProfileScreen';
 import CompleteProfileScreen from '../screens/Profile/CompleteProfileScreen';
 import SettingsScreen from '../screens/Settings/SettingsScreen';
+import OfflineExpenseScreen from '../screens/Expenses/OfflineExpenseScreen';
 import { useTheme } from '../contexts';
 
 const Tab = createBottomTabNavigator();
@@ -15,6 +16,14 @@ function HomeStack() {
   return (
     <Stack.Navigator screenOptions={{ headerShown: false }}>
       <Stack.Screen name="HomeMain" component={HomeScreen} />
+    </Stack.Navigator>
+  );
+}
+
+function ExpensesStack() {
+  return (
+    <Stack.Navigator screenOptions={{ headerShown: false }}>
+      <Stack.Screen name="ExpensesMain" component={OfflineExpenseScreen} />
     </Stack.Navigator>
   );
 }
@@ -65,6 +74,18 @@ export default function MainNavigator() {
           tabBarIcon: ({ focused }) => (
             <Text style={{ fontSize: 24 }}>
               {focused ? '🏠' : '🏡'}
+            </Text>
+          ),
+        }}
+      />
+      <Tab.Screen
+        name="ExpensesTab"
+        component={ExpensesStack}
+        options={{
+          tabBarLabel: 'Expenses',
+          tabBarIcon: ({ focused }) => (
+            <Text style={{ fontSize: 24 }}>
+              {focused ? '💰' : '💵'}
             </Text>
           ),
         }}
