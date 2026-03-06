@@ -4,7 +4,7 @@ import { Button, Card, CustomText } from '../../components/base';
 import { useAuth, useTheme } from '../../contexts';
 import { SPACING } from '../../constants/theme';
 
-export default function SettingsScreen() {
+export default function SettingsScreen({ navigation }) {
   const { logout } = useAuth();
   const { isDark, toggleTheme, colors } = useTheme();
 
@@ -46,6 +46,17 @@ export default function SettingsScreen() {
 
         <Card variant="elevated" style={styles.card}>
           <CustomText variant="h3" style={styles.cardTitle}>
+            Developer Tools
+          </CustomText>
+          <Button
+            title="Test Error Handling"
+            variant="secondary"
+            onPress={() => navigation.navigate('ErrorTest')}
+          />
+        </Card>
+
+        <Card variant="elevated" style={styles.card}>
+          <CustomText variant="h3" style={styles.cardTitle}>
             Account
           </CustomText>
           <Button
@@ -60,11 +71,26 @@ export default function SettingsScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1 },
-  content: { padding: SPACING.md, paddingTop: 60 },
-  title: { marginBottom: SPACING.lg },
-  card: { marginTop: SPACING.md },
-  cardTitle: { marginBottom: SPACING.md },
-  text: { marginBottom: SPACING.md },
-  button: { marginTop: SPACING.sm },
+  container: {
+    flex: 1,
+  },
+  content: {
+    padding: SPACING.md,
+    paddingTop: 60,
+  },
+  title: {
+    marginBottom: SPACING.lg,
+  },
+  card: {
+    marginTop: SPACING.md,
+  },
+  cardTitle: {
+    marginBottom: SPACING.md,
+  },
+  text: {
+    marginBottom: SPACING.md,
+  },
+  button: {
+    marginTop: SPACING.sm,
+  },
 });
