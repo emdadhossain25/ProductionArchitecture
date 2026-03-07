@@ -9,3 +9,4 @@ export { default as useToggle } from './useToggle';
 export { default as useKeyboard } from './useKeyboard';
 export { default as useMultiStepForm } from './useMultiStepForm';
 export { default as useNetworkStatus } from './useNetworkStatus';
+export * from './usePerformance';

@@ -52,6 +52,12 @@ export default function SettingsScreen({ navigation }) {
             title="Test Error Handling"
             variant="secondary"
             onPress={() => navigation.navigate('ErrorTest')}
+            style={styles.button}
+          />
+          <Button
+            title="Performance Test"
+            variant="secondary"
+            onPress={() => navigation.navigate('PerformanceTest')}
           />
         </Card>
 

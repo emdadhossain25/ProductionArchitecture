@@ -6,6 +6,8 @@ import HomeScreen from '../screens/Home/HomeScreen';
 import ProfileScreen from '../screens/Profile/ProfileScreen';
 import CompleteProfileScreen from '../screens/Profile/CompleteProfileScreen';
 import SettingsScreen from '../screens/Settings/SettingsScreen';
+import ErrorTestScreen from '../screens/Settings/ErrorTestScreen';
+import PerformanceTestScreen from '../screens/Settings/PerformanceTestScreen';
 import OfflineExpenseScreen from '../screens/Expenses/OfflineExpenseScreen';
 import { useTheme } from '../contexts';
 
@@ -41,6 +43,8 @@ function SettingsStack() {
   return (
     <Stack.Navigator screenOptions={{ headerShown: false }}>
       <Stack.Screen name="SettingsMain" component={SettingsScreen} />
+      <Stack.Screen name="ErrorTest" component={ErrorTestScreen} />
+      <Stack.Screen name="PerformanceTest" component={PerformanceTestScreen} />
     </Stack.Navigator>
   );
 }
